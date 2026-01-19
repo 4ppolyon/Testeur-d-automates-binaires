@@ -64,18 +64,18 @@ class test_automate_bin:
                 print(f"Chaîne: {chaine}, Attendu: {'✅' if attendu else '❌'}")
 
         tests = {}
-        for i in range(4096):
+        for i in range(1000000):
             binaire = self.translate_to_binary(i)
             tests[binaire] = (i % 4 == 1)
         
         afficher_premiers_tests(tests)
 
-        print("Début des tests...")
+        print("\nDébut des tests...")
         start_time = __import__('time').time()
         for chaine, attendu in tests.items():
             resultat, etats_visites = self.automate.lire_chaine(chaine)
-            # print(f"Chaîne: {chaine}, États visités: {etats_visites}, Résultat: {'✅' if resultat else '❌'}")
-            assert resultat == attendu, f"Échec pour la chaîne '{chaine}': attendu {attendu}, obtenu {resultat}"
+            assert resultat == attendu, f"Résultat incorrect : attendu {'✅' if attendu else '❌'}, mais obtenu {'✅' if resultat else '❌'}\n\tÉtats visités: {' -> '.join(etats_visites)}"
+            # print(f"Résultat correct ✅ : attendu {'✅' if attendu else '❌'}, obtenu {'✅' if resultat else '❌'}")
         end_time = __import__('time').time()
         print(f"Tous les tests sont passés avec succès. ✅ Temps écoulé: {end_time - start_time:.2f} secondes")
 
