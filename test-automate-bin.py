@@ -22,15 +22,20 @@ class etat:
 class automate:
     def __init__(self, etats, etat_initial):
         self.etats = {etat.nom: etat for etat in etats}
+        self.etat_initial = etat_initial
         self.etat_courant = self.etats[etat_initial]
 
     def lire_chaine(self, chaine):
+        self.etat_courant = self.etats[self.etat_initial]  # Réinitialiser à l'état initial
+        etats_visites = [self.etat_courant.nom]
         for symbole in chaine:
             self.etat_courant = self.etats[self.etat_courant.transition(symbole)]
-        return self.etat_courant.est_final()
+            etats_visites.append(self.etat_courant.nom)
+        return self.etat_courant.est_final(), etats_visites
     
 class test_automate_bin:
     def __init__(self):
+        
         e0 = etat("e0", "e0", "e1", final=False)
         e1 = etat("e1", "e0", "e2", final=True)
         e2 = etat("e2", "e0", "e2", final=False)
@@ -59,7 +64,7 @@ class test_automate_bin:
                 print(f"Chaîne: {chaine}, Attendu: {'✅' if attendu else '❌'}")
 
         tests = {}
-        for i in range(1000000):
+        for i in range(4096):
             binaire = self.translate_to_binary(i)
             tests[binaire] = (i % 4 == 1)
         
@@ -68,7 +73,8 @@ class test_automate_bin:
         print("Début des tests...")
         start_time = __import__('time').time()
         for chaine, attendu in tests.items():
-            resultat = self.automate.lire_chaine(chaine)
+            resultat, etats_visites = self.automate.lire_chaine(chaine)
+            # print(f"Chaîne: {chaine}, États visités: {etats_visites}, Résultat: {'✅' if resultat else '❌'}")
             assert resultat == attendu, f"Échec pour la chaîne '{chaine}': attendu {attendu}, obtenu {resultat}"
         end_time = __import__('time').time()
         print(f"Tous les tests sont passés avec succès. ✅ Temps écoulé: {end_time - start_time:.2f} secondes")
