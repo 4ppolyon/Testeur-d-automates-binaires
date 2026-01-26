@@ -1,85 +1,91 @@
-class etat:
-    def __init__(self, nom, q0, q1, final=False):
+import time
+
+class Etat:
+    def __init__(self, nom, q0=None, q1=None, final=False):
         self.nom = nom
-        self.q0 = q0
+        self.q0 = q0  # références directes à d'autres objets Etat
         self.q1 = q1
         self.final = final
 
-    def afficher(self):
-        return f"État: {self.nom}, q0: {self.q0}, q1: {self.q1}, final: {self.final}"
-    
+    def __str__(self):
+        return f"{self.nom} (final={self.final})"
+
     def est_final(self):
         return self.final
-    
-    def transition(self, entree):
-        if entree == '0':
+
+    def transition(self, symbole):
+        if symbole == '0':
             return self.q0
-        elif entree == '1':
+        elif symbole == '1':
             return self.q1
         else:
-            raise ValueError("Entrée invalide, doit être '0' ou '1'")
-    
-class automate:
+            raise ValueError(f"Entrée invalide : {symbole}. Doit être '0' ou '1'.")
+
+
+class Automate:
     def __init__(self, etats, etat_initial):
-        self.etats = {etat.nom: etat for etat in etats}
+        self.etats = etats
         self.etat_initial = etat_initial
-        self.etat_courant = self.etats[etat_initial]
+        self.etat_courant = etat_initial
 
     def lire_chaine(self, chaine):
-        self.etat_courant = self.etats[self.etat_initial]  # Réinitialiser à l'état initial
+        self.etat_courant = self.etat_initial
         etats_visites = [self.etat_courant.nom]
+
         for symbole in chaine:
-            self.etat_courant = self.etats[self.etat_courant.transition(symbole)]
+            self.etat_courant = self.etat_courant.transition(symbole)
             etats_visites.append(self.etat_courant.nom)
+
         return self.etat_courant.est_final(), etats_visites
-    
-class test_automate_bin:
+
+
+class TestAutomateBin:
     def __init__(self):
-        
-        e0 = etat("e0", "e0", "e1", final=False)
-        e1 = etat("e1", "e0", "e2", final=True)
-        e2 = etat("e2", "e0", "e2", final=False)
-        self.automate = automate([e0, e1, e2], "e0")
-    
-    def translate_to_binary(self, n):
-        # print("Traduction de",n,"en binaire :",end=" ")
-        if n == 0:
-            # print("0")
-            return "0"
-        bits = []
-        while n > 0:
-            bits.append(str(n % 2))
-            n //= 2
-        bits_str = ''.join(reversed(bits))
-        # print(bits_str)
-        return bits_str
+        # Création des états
+        e0 = Etat("e0", final=False)
+        e1 = Etat("e1", final=True)
+        e2 = Etat("e2", final=False)
 
-    def tester(self):
+        # Définition des transitions
+        e0.q0, e0.q1 = e0, e1
+        e1.q0, e1.q1 = e0, e2
+        e2.q0, e2.q1 = e0, e2
 
-        def afficher_premiers_tests(tests, n=10):
-            print("Premiers tests générés :")
-            for i, (chaine, attendu) in enumerate(tests.items()):
-                if i >= n:
-                    break
-                print(f"Chaîne: {chaine}, Attendu: {'✅' if attendu else '❌'}")
+        # Automate
+        self.automate = Automate([e0, e1, e2], e0)
 
-        tests = {}
-        for i in range(1000000):
+    @staticmethod
+    def translate_to_binary(n):
+        return bin(n)[2:]
+
+    def tester(self, n_tests=1_000_000, afficher_premiers=10):
+        print(f"Début des tests pour {n_tests} nombres...")
+        start_time = time.time()
+
+        premiers_tests = []
+
+        for i in range(n_tests):
             binaire = self.translate_to_binary(i)
-            tests[binaire] = (i % 4 == 1)
-        
-        afficher_premiers_tests(tests)
+            attendu = (i % 4 == 1)
+            resultat, etats_visites = self.automate.lire_chaine(binaire)
 
-        print("\nDébut des tests...")
-        start_time = __import__('time').time()
-        for chaine, attendu in tests.items():
-            resultat, etats_visites = self.automate.lire_chaine(chaine)
-            assert resultat == attendu, f"Résultat incorrect : attendu {'✅' if attendu else '❌'}, mais obtenu {'✅' if resultat else '❌'}\n\tÉtats visités: {' -> '.join(etats_visites)}"
-            # print(f"Résultat correct ✅ : attendu {'✅' if attendu else '❌'}, obtenu {'✅' if resultat else '❌'}")
-        end_time = __import__('time').time()
-        print(f"Tous les tests sont passés avec succès. ✅ Temps écoulé: {end_time - start_time:.2f} secondes")
+            if i < afficher_premiers:
+                premiers_tests.append((binaire, attendu, resultat, etats_visites))
+
+            assert resultat == attendu, (
+                f"Erreur pour {binaire} ({i}): attendu {attendu}, obtenu {resultat}\n"
+                f"États visités: {' -> '.join(etats_visites)}"
+            )
+
+        end_time = time.time()
+        print(f"✅ Tous les tests passés en {end_time - start_time:.2f} secondes.\n")
+
+        print(f"Premiers {afficher_premiers} tests :")
+        for binaire, attendu, resultat, etats_visites in premiers_tests:
+            print(f"Chaîne: {binaire}, attendu: {'✅' if attendu else '❌'}, obtenu: {'✅' if resultat else '❌'}, "
+                  f"États: {' -> '.join(etats_visites)}")
+
 
 if __name__ == "__main__":
-    test = test_automate_bin()
-    # test.translate_to_binary(25)
-    test.tester()
+    test = TestAutomateBin()
+    test.tester(n_tests=1000000, afficher_premiers=10)
