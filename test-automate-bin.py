@@ -96,24 +96,78 @@ class AutomateAFN:
             t1 = "{" + ",".join(e.nom for e in transitions['1']) + "}"
 
             print(f"{nom_etat:^20} | {t0:^20} | {t1:^20} | {'✅' if est_final else '❌':^7}")
+    
+    def determiniser(self):
+        symboles = ['0', '1']
 
-class TestAutomateBin:
+        # État initial de l’AFD = ensemble contenant l’état initial AFN
+        etat_initial_afn = frozenset([self.etat_initial])
+
+        # dictionnaire : ensemble AFN -> Etat AFD
+        mapping = {}
+
+        # file BFS
+        a_traiter = [etat_initial_afn]
+
+        # création de l’état initial AFD
+        nom_init = "{" + ",".join(e.nom for e in etat_initial_afn) + "}"
+        etat_init_afd = Etat(
+            nom=nom_init,
+            final=any(e.est_final() for e in etat_initial_afn)
+        )
+
+        mapping[etat_initial_afn] = etat_init_afd
+
+        while a_traiter:
+            etat_courant_afn = a_traiter.pop(0)
+            etat_courant_afd = mapping[etat_courant_afn]
+
+            for symbole in symboles:
+                nouvel_etat_afn = set()
+
+                for e in etat_courant_afn:
+                    nouvel_etat_afn |= e.transitions[symbole]
+
+                nouvel_etat_afn = frozenset(nouvel_etat_afn)
+
+                if nouvel_etat_afn not in mapping:
+                    nom = "{" + ",".join(e.nom for e in nouvel_etat_afn) + "}"
+                    mapping[nouvel_etat_afn] = Etat(
+                        nom=nom,
+                        final=any(e.est_final() for e in nouvel_etat_afn)
+                    )
+                    a_traiter.append(nouvel_etat_afn)
+
+                # connexion des transitions AFD
+                if symbole == '0':
+                    etat_courant_afd.q0 = mapping[nouvel_etat_afn]
+                else:
+                    etat_courant_afd.q1 = mapping[nouvel_etat_afn]
+
+        # Automate déterministe final
+        return Automate(
+            etats=list(mapping.values()),
+            etat_initial=etat_init_afd
+        )
+        
+
+class TestAutomate:
     def __init__(self, automate):
         self.automate = automate
 
-    @staticmethod
-    def translate_to_binary(n):
-        return bin(n)[2:]
-
-    def tester(self, n_tests=1_000_000, afficher_premiers=10):
+    def tester_automate(self, critere, n_tests=1_000_000, afficher_premiers=10):
         print(f"Début des tests pour {n_tests} nombres...")
         start_time = time.time()
+
+        """
+        critere : fonction prenant un entier i et renvoyant True / False
+        """
 
         premiers_tests = []
 
         for i in range(n_tests):
-            binaire = self.translate_to_binary(i)
-            attendu = (i % 4 == 1)
+            binaire = bin(i)[2:]  # conversion en binaire sans le préfixe '0b'
+            attendu = critere(i)
             resultat, etats_visites = self.automate.lire_chaine(binaire)
 
             if i < afficher_premiers:
@@ -136,31 +190,36 @@ class TestAutomateBin:
 if __name__ == "__main__":
 
     print("\nTESTS DE L'AUTOMATE BINAIRE RECONNAISSANT LES NOMBRES ≡ 1 (mod 4)\n")
-    # Création des états
+
+    # Création des états pour l'automate déterministe
     e0 = Etat("e0")
     e1 = Etat("e1", final=True)
     e2 = Etat("e2")
 
-    # Définition des transitions
+    # Définition des transitions pour l'automate déterministe
     e0.q0, e0.q1 = e0, e1
     e1.q0, e1.q1 = e0, e2
     e2.q0, e2.q1 = e0, e2
 
     automate = Automate([e0, e1, e2], e0)
 
-    test = TestAutomateBin(automate=automate)
-    test.tester(n_tests=1000000, afficher_premiers=10)
+    test = TestAutomate(automate=automate)
 
-    print("\nTEST DE LA DÉTERMINISATION D'UN AFN RECONNAISSANT LES CHAÎNES DE LONGUEUR ≥ 3 "
+    def critere_mod4_eq_1(n):
+        return n % 4 == 1
+    
+    test.tester_automate(critere=critere_mod4_eq_1, n_tests=1000000, afficher_premiers=10)
+
+    print("_"*80 +"\n\nTEST DE LA DÉTERMINISATION D'UN AFN RECONNAISSANT LES CHAÎNES DE LONGUEUR ≥ 3\n"
           "AVEC UN '1' EN ANTÉPÉNULTIME CARACTÈRE\n")
 
-    # Création des états pour le tableau de déterminisation
+    # Création des états pour l'automate non déterministe
     e0 = EtatAFN("e0")
-    e1 = EtatAFN("B")
+    e1 = EtatAFN("e1")
     e2 = EtatAFN("e2")
     e3 = EtatAFN("e3", final=True)
 
-    # Définition des transitions pour le tableau de déterminisation
+    # Définition des transitions pour l'automate non déterministe
     e0.ajouter_transition('0', e0)
     e0.ajouter_transition('1', e0)
     e0.ajouter_transition('1', e1)
@@ -172,3 +231,13 @@ if __name__ == "__main__":
     afn = AutomateAFN([e0, e1, e2, e3], e0)
 
     afn.tableau_determinisation()
+    afd = afn.determiniser()
+
+    print("_"*80 +"\n\nTESTS DE L'AUTOMATE DÉTERMINISTE OBTENU APRÈS DÉTERMINISATION\n")
+    test_afd = TestAutomate(automate=afd)
+
+    def critere_longueur_ge_3_antepenultieme_1(n):
+        binaire = bin(n)[2:] # conversion en binaire sans le préfixe '0b'
+        return len(binaire) >= 3 and binaire[-3] == '1'
+
+    test_afd.tester_automate(critere=critere_longueur_ge_3_antepenultieme_1, n_tests=1000000, afficher_premiers=10)
