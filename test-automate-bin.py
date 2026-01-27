@@ -7,9 +7,6 @@ class Etat:
         self.q1 = q1
         self.final = final
 
-    def __str__(self):
-        return f"{self.nom} (final={self.final})"
-
     def est_final(self):
         return self.final
 
@@ -36,15 +33,19 @@ class EtatAFN:
     def est_final(self):
         return self.final
 
-    def __str__(self):
-        return self.nom
-
 
 class Automate:
     def __init__(self, etats, etat_initial):
         self.etats = etats
         self.etat_initial = etat_initial
         self.etat_courant = etat_initial
+
+    def afficher(self):
+        print("Automate:")
+        for etat in self.etats:
+            final_str = " (final)" if etat.est_final() else ""
+            print(f"État {etat.nom}{final_str}: 0 -> {etat.q0.nom}, 1 -> {etat.q1.nom}")
+        print()
 
     def lire_chaine(self, chaine):
         self.etat_courant = self.etat_initial
@@ -55,12 +56,22 @@ class Automate:
             etats_visites.append(self.etat_courant.nom)
 
         return self.etat_courant.est_final(), etats_visites
+    
 
 class AutomateAFN:
     def __init__(self, etats, etat_initial):
         self.etats = etats
         self.etat_initial = etat_initial
     
+    def afficher(self):
+        print("Automate AFN:")
+        for etat in self.etats:
+            final_str = " (final)" if etat.est_final() else ""
+            t0 = ", ".join(e.nom for e in etat.transitions['0'])
+            t1 = ", ".join(e.nom for e in etat.transitions['1'])
+            print(f"État {etat.nom}{final_str}: 0 -> {{{t0}}}, 1 -> {{{t1}}}")
+        print()
+
     def tableau_determinisation(self):
         symboles = ['0', '1']
 
@@ -96,6 +107,7 @@ class AutomateAFN:
             t1 = "{" + ",".join(e.nom for e in transitions['1']) + "}"
 
             print(f"{nom_etat:^20} | {t0:^20} | {t1:^20} | {'✅' if est_final else '❌':^7}")
+        print()
     
     def determiniser(self):
         symboles = ['0', '1']
@@ -179,12 +191,12 @@ class TestAutomate:
             )
 
         end_time = time.time()
-        print(f"✅ Tous les tests passés en {end_time - start_time:.2f} secondes.\n")
 
-        print(f"Premiers {afficher_premiers} tests :")
+        print(f"\nPremiers {afficher_premiers} tests :")
         for binaire, attendu, resultat, etats_visites in premiers_tests:
             print(f"Chaîne: {binaire}, attendu: {'✅' if attendu else '❌'}, obtenu: {'✅' if resultat else '❌'}, "
                   f"États: {' -> '.join(etats_visites)}")
+        print(f"\n✅ Tous les tests passés en {end_time - start_time:.2f} secondes.\n")
 
 
 if __name__ == "__main__":
@@ -202,6 +214,7 @@ if __name__ == "__main__":
     e2.q0, e2.q1 = e0, e2
 
     automate = Automate([e0, e1, e2], e0)
+    automate.afficher()
 
     test = TestAutomate(automate=automate)
 
@@ -229,9 +242,11 @@ if __name__ == "__main__":
     e2.ajouter_transition('1', e3)
 
     afn = AutomateAFN([e0, e1, e2, e3], e0)
+    afn.afficher()
 
     afn.tableau_determinisation()
     afd = afn.determiniser()
+    afd.afficher()
 
     print("_"*80 +"\n\nTESTS DE L'AUTOMATE DÉTERMINISTE OBTENU APRÈS DÉTERMINISATION\n")
     test_afd = TestAutomate(automate=afd)
