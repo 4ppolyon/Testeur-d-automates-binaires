@@ -1,4 +1,5 @@
 import time
+from tqdm import tqdm
 
 class Etat:
     def __init__(self, nom, q0=None, q1=None, final=False):
@@ -177,7 +178,7 @@ class TestAutomate:
 
         premiers_tests = []
 
-        for i in range(n_tests):
+        for i in tqdm(range(n_tests), desc="Tests en cours", unit="test"):
             binaire = bin(i)[2:]  # conversion en binaire sans le préfixe '0b'
             attendu = critere(i)
             resultat, etats_visites = self.automate.lire_chaine(binaire)
