@@ -1,33 +1,58 @@
 # Testeur d’automates binaires
 
-Un outil Python permettant de **modéliser, simuler et tester des automates finis déterministes (AFD) et non déterministes (AFN)** sur l’alphabet binaire `{0,1}`.  
-Le projet vérifie automatiquement qu’un automate reconnaît correctement un langage binaire donné.
+Un outil Python permettant de **modéliser, simuler, tester et visualiser des automates finis** :
 
-Dans la version actuelle, le projet permet :  
+- Automates finis déterministes (**AFD**)
+- Automates finis non déterministes (**AFN**, avec ou sans ε-transitions)
 
-- de tester un **AFD classique** (ex. nombres congrus à 1 modulo 4),  
-- de créer un **AFN**, puis de le **transformer en AFD** (déterminisation), même si certaines transitions sont absentes.  
+L’alphabet utilisé est `{0,1}`.
+
+---
+
+## Fonctionnalités
+
+Le projet permet :
+
+- ✔️ de créer des **AFD et AFN**
+- ✔️ de simuler la lecture de mots binaires
+- ✔️ de tester automatiquement un automate avec un critère
+- ✔️ de **déterminiser un AFN**
+- ✔️ de **supprimer les ε-transitions**
+- ✔️ de générer un **tableau de déterminisation**
+- ✔️ de **dessiner les automates automatiquement (Graphviz)**
 
 ---
 
-## Objectifs
+## Installation
 
-- Implémenter un **automate fini déterministe** (`Automate`) et un **automate fini non déterministe** (`AutomateAFN`).  
-- Simuler la lecture de mots binaires et suivre les **états visités**.  
-- Tester automatiquement un automate sur un grand nombre d’entrées, avec un **critère de reconnaissance généralisé**.  
-- Vérifier la correspondance entre le langage et le comportement de l’automate.  
-- Démontrer la **déterminisation d’un AFN partiel**, générant éventuellement un **état puits**.
+### 1. Cloner le projet
+
+```bash
+git clone <repo_url>
+cd <repo>
+```
 
 ---
+### 2. Installer les dépendances Python
+```bash
+pip install tqdm graphviz
+```
+
+---
+### 3. Installer Graphviz (OBLIGATOIRE pour le dessin)
+
+Télécharger ici : https://graphviz.org/download/
+
+Version utilisée : `graphviz-14.1.3 (64-bit)` ⚠️ **Ajouter Graphviz au PATH** ⚠️
 
 ## Principe théorique
 
 ### Automate déterministe exemple : `n % 4 == 1`
 
-Un entier est congruent à **1 modulo 4** si et seulement si :  
+Un entier est congruent à **1 modulo 4** si :  
 
-- son écriture binaire se termine par `"01"`, ou  
-- elle est `"1"` (pour le premier entier 1).  
+- son écriture binaire se termine par `"01"`  
+- ou il vaut `"1"`.  
 
 L’automate implémenté exploite cette propriété et ne dépend que du **suffixe** du mot binaire.
 
@@ -39,11 +64,11 @@ L’automate implémenté exploite cette propriété et ne dépend que du **suff
 
 ---
 
-### Automate non déterministe exemple
+### Automate non déterministe exemple : détection d’un 1 en antépénultième position
 
-- Reconnaît toutes les chaînes de longueur ≥ 3 ayant un `'1'` en **antépénultième position**.  
-- Les états ont des **transitions multiples possibles** pour un même symbole (non déterminisme).  
-- Exemple :
+**Automate non déterministe** désigne un type d’automate où, pour un même état et un même symbole d’entrée, il peut y
+avoir **plusieurs transitions possibles** vers différents états. Dans notre exemple, l’automate reconnaît toutes les
+chaînes de longueur ≥ 3 ayant un `'1'` en **antépénultième position**.
 
 | État | 0 | 1 | Final |
 |------|---|---|-------|
@@ -54,15 +79,77 @@ L’automate implémenté exploite cette propriété et ne dépend que du **suff
 
 ---
 
+### ε-transitions
+
+Transitions sans consommation de symbole (asynchrone) :
+- Éliminée par la methode des ε-clôtures
+- Doivent être supprimées avant déterminisation
+- Exemple sur l’automate non déterministe précédent :
+```
+TEST DE L'AUTOMATE NON DÉTERMINISTE AVEC ε-TRANSITIONS RECONNAISSANT LES NOMBRES DONT LA
+REPRÉSENTATION BINAIRE CONTIENT UNE SUITE ALTERNANTE DE '0' ET '1'
+
+Automate AFN:
+État e0: 0 -> {}, 1 -> {}, ε -> {e1, e2}
+État e1 (final): 0 -> {e2}, 1 -> {}, ε -> {}
+État e2 (final): 0 -> {}, 1 -> {e1}, ε -> {}
+
+
+SUPPRESSION DES ε-TRANSITIONS
+
+ε-clôture(e0) : {e1,e0,e2}
+ε-clôture(e1) : {e1}
+ε-clôture(e2) : {e2}
+
+Traitement de l’état e0
+  Symbole 0 :
+    depuis e1 vers la cloture de e2, qui est {e2}
+    depuis e0
+    depuis e2
+    → {{e2}}
+  Symbole 1 :
+    depuis e1
+    depuis e0
+    depuis e2 vers la cloture de e1, qui est {e1}
+    → {{e1}}
+
+Traitement de l’état e1
+  Symbole 0 :
+    depuis e1 vers la cloture de e2, qui est {e2}
+    → {{e2}}
+  Symbole 1 :
+    depuis e1
+    → {}
+
+Traitement de l’état e2
+  Symbole 0 :
+    depuis e2
+    → {}
+  Symbole 1 :
+    depuis e2 vers la cloture de e1, qui est {e1}
+    → {{e1}}
+
+✔ {e1,e0,e2} devient FINAL
+✔ {e1} devient FINAL
+✔ {e2} devient FINAL
+
+Automate AFN:
+État {e1,e0,e2} (final): 0 -> {{e2}}, 1 -> {{e1}}, ε -> {}
+État {e1} (final): 0 -> {{e2}}, 1 -> {}, ε -> {}
+État {e2} (final): 0 -> {}, 1 -> {{e1}}, ε -> {}
+```
+
+---
 ### Déterminisation
 
-- Transforme un **AFN partiel** en **AFD total**.  
-- Si certaines transitions n’existent pas, un **état puits** est créé.  
-- L’AFD résultant a une transition pour **tous les symboles de chaque état**.
+Nous avons fait le choix de transformer un **AFN** en **AFD Complet**.
+
+C'est-à-dire que :
+- Si certaines transitions "*n’existent pas*", un **état puits** est créé et l’AFD résultant a une transition pour **tous les symboles de chaque état**.
 
 ---
 
-## Tests automatisés
+### Tests automatisés
 
 - `TestAutomate.tester_automate(critere, n_tests, afficher_premiers)` permet de tester un automate avec **n’importe quel critère**.  
 - Exemple :
@@ -82,18 +169,73 @@ def critere_longueur_ge_3_antepenultieme_1(n):
 
 ---
 
-## Affichage des automates
+### Affichage des automates
 
 - `Automate.afficher()` → transitions déterministes et états finaux.  
-- `AutomateAFN.afficher()` → transitions multiples possibles pour chaque symbole.  
+- `Automate.dessiner("nom_fichier")` → dessin de l’automate avec Graphviz et sauvegarde au format PNG.
+  - état initial → flèche entrante 
+  - état final → double cercle 
+  - transitions étiquetées (0, 1)
+  - Les fichiers sont générés en .png
+- `AutomateAFN.afficher()` → transitions multiples possibles pour chaque symbole.
+- `AutomateAFN.dessiner("nom_fichier")` → dessin de l’AFN avec Graphviz et sauvegarde au format PNG. 
+  - état initial → flèche entrante 
+  - état final → double cercle 
+  - transitions étiquetées (0, 1, ε)
+  - Les fichiers sont générés en .png
 - `tableau_determinisation()` → tableau AFN → AFD, avec état puits si nécessaire.
+
+---
+
+## Structure du code
+Classes principales :
+- `Etat` → état d’un AFD
+- `EtatAFN` → état d’un AFN (avec transitions multiples + ε)
+- `Automate` → AFD
+- `AutomateAFN` → AFN
+- `TestAutomate` → moteur de tests
+
+---
+
+## Fonctionnalités avancées
+- `epsilon_cloture()` → calcule la fermeture ε
+- `supprimer_epsilon()` → transforme AFN ε → AFN standard
+- `tableau_determinisation()` → affichage pédagogique
+- `determiniser()` → AFN → AFD
+
+---
+
+## Exemples inclus
+
+- AFD → modulo 4
+- AFN → antépénultième = 1
+- AFN avec ε → alternance 0/1
+- AFN complexe → se termine par 011
+
+---
+
+## Problèmes courants
+```❌ Erreur : dot not found```
+
+Solution :
+
+1. Installer Graphviz (si ce n’est pas déjà fait : https://graphviz.org/download/)
+2. Ajouter au PATH (sur windows une option est de cocher "Add Graphviz to the system PATH" lors de l’installation)
+3. Redémarrer le terminal
+
+---
 
 ## Remarques
 
-- Les **AFN partiels** peuvent générer un **état puits** lors de la déterminisation.
-- Chaque état AFD a désormais **une transition définie pour tous les symboles** de l’alphabet {0,1}.
 - Les tests automatisés permettent de vérifier rapidement le comportement de l’automate sur un grand nombre d’entrées.
+- La visualisation avec Graphviz facilite la compréhension de la structure de l’automate et de ses transitions.
+- Ce projet est à but pédagogique (uniquement), pour illustrer les concepts d’automates finis déterministes et non déterministes, ainsi que les transformations entre eux.
+- Le projet est réalisé en Python
+- Le projet est réalisé sur mon temps libre, sans contrainte de délai et en parallele de ma thèse de doctorat, il est donc possible que certaines fonctionnalités soient incomplètes ou que des bugs subsistent, n’hésitez pas à me contacter pour toute question ou suggestion d’amélioration.
 
 ## Auteur
 
 Romain Alves
+- [GitHub](https://github.com/4ppolyon)
+- [LinkedIn](https://www.linkedin.com/in/romainalves/)
+- [Email](mailto:romalves@lisn.fr)
