@@ -86,14 +86,15 @@ class AutomateAFN:
     def __init__(self, etats, etat_initial):
         self.etats = etats
         self.etat_initial = etat_initial
-    
+
     def afficher(self):
         print("Automate AFN:")
         for etat in self.etats:
             final_str = " (final)" if etat.est_final() else ""
             t0 = ", ".join(e.nom for e in etat.transitions['0'])
             t1 = ", ".join(e.nom for e in etat.transitions['1'])
-            print(f"État {etat.nom}{final_str}: 0 -> {{{t0}}}, 1 -> {{{t1}}}")
+            tepsilon = ", ".join(e.nom for e in etat.transitions['ε'])
+            print(f"État {etat.nom}{final_str}: 0 -> {{{t0}}}, 1 -> {{{t1}}}, ε -> {{{tepsilon}}}")
         print()
 
     def dessiner(self, nom_fichier="automate_afn"):
@@ -133,7 +134,6 @@ class AutomateAFN:
         return cloture, nom_cloture
 
     def supprimer_epsilon(self):
-
         nouveaux_etats = {}
 
         # Étape 1 : ε-clôtures
@@ -455,4 +455,4 @@ if __name__ == "__main__":
     def critere_fini_par_abb(n):
         binaire = bin(n)[2:] # conversion en binaire sans le préfixe '0b'
         return binaire.endswith('011')
-    test_afd_final.tester_automate(critere=critere_fini_par_abb, n_tests=100000, afficher_premiers=20)
+    test_afd_final.tester_automate(critere=critere_fini_par_abb, n_tests=100000, afficher_premiers=10)
