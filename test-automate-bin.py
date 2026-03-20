@@ -133,7 +133,6 @@ class AutomateAFN:
         return cloture, nom_cloture
 
     def supprimer_epsilon(self):
-        print("\nSUPPRESSION DES ε-TRANSITIONS\n")
 
         nouveaux_etats = {}
 
@@ -456,4 +455,4 @@ if __name__ == "__main__":
     def critere_fini_par_abb(n):
         binaire = bin(n)[2:] # conversion en binaire sans le préfixe '0b'
         return binaire.endswith('011')
-    test_afd_final.tester_automate(critere=critere_fini_par_abb, n_tests=100000, afficher_premiers=10)
+    test_afd_final.tester_automate(critere=critere_fini_par_abb, n_tests=100000, afficher_premiers=20)
