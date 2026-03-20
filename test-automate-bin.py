@@ -1,5 +1,6 @@
 import time
 from tqdm import tqdm
+from graphviz import Digraph
 
 class Etat:
     def __init__(self, nom, q0=None, q1=None, final=False):
@@ -58,6 +59,27 @@ class Automate:
             etats_visites.append(self.etat_courant.nom)
 
         return self.etat_courant.est_final(), etats_visites
+
+    def dessiner(self, nom_fichier="automate_dfa"):
+        dot = Digraph()
+
+        # États
+        for etat in self.etats:
+            shape = "doublecircle" if etat.est_final() else "circle"
+            dot.node(etat.nom, shape=shape)
+
+        # Flèche initiale
+        dot.node('', shape='none')
+        dot.edge('', self.etat_initial.nom)
+
+        # Transitions
+        for etat in self.etats:
+            if etat.q0:
+                dot.edge(etat.nom, etat.q0.nom, label='0')
+            if etat.q1:
+                dot.edge(etat.nom, etat.q1.nom, label='1')
+
+        dot.render(nom_fichier, format='png', view=True)
     
 
 class AutomateAFN:
@@ -73,6 +95,26 @@ class AutomateAFN:
             t1 = ", ".join(e.nom for e in etat.transitions['1'])
             print(f"État {etat.nom}{final_str}: 0 -> {{{t0}}}, 1 -> {{{t1}}}")
         print()
+
+    def dessiner(self, nom_fichier="automate_afn"):
+        dot = Digraph()
+
+        # États
+        for etat in self.etats:
+            shape = "doublecircle" if etat.est_final() else "circle"
+            dot.node(etat.nom, shape=shape)
+
+        # Flèche initiale
+        dot.node('', shape='none')
+        dot.edge('', self.etat_initial.nom)
+
+        # Transitions
+        for etat in self.etats:
+            for symbole, destinations in etat.transitions.items():
+                for dest in destinations:
+                    dot.edge(etat.nom, dest.nom, label=symbole)
+
+        dot.render(nom_fichier, format='png', view=True)
 
     def epsilon_cloture(self, etat):
         pile = [etat]
@@ -393,17 +435,20 @@ if __name__ == "__main__":
 
     afn_epsilon = AutomateAFN([e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10], e0)
     afn_epsilon.afficher()
+    afn_epsilon.dessiner(nom_fichier="afn_epsilon")
 
     print("\nSUPPRESSION DES ε-TRANSITIONS\n")
 
     afn_sans_epsilon = afn_epsilon.supprimer_epsilon()
     afn_sans_epsilon.afficher()
+    afn_sans_epsilon.dessiner(nom_fichier="afn_sans_epsilon")
 
     print("\nDÉTERMINISATION DE L'AFN SANS ε-TRANSITIONS\n")
 
     afn_sans_epsilon.tableau_determinisation()
     afd_final = afn_sans_epsilon.determiniser()
     afd_final.afficher()
+    afd_final.dessiner(nom_fichier="afd_final")
 
     print("\nTESTS DE L'AUTOMATE DÉTERMINISTE OBTENU APRÈS DÉTERMINISATION ET SUPPRESSION DES ε-TRANSITIONS\n")
 
