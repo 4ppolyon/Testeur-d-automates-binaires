@@ -1,5 +1,7 @@
 # Testeur d’automates binaires
 
+[![Watch a one-minute video tour of testeur-d-automates-binaires](https://gitdiagram.com/video-badge.svg)](https://gitdiagram.com/4ppolyon/testeur-d-automates-binaires/video)
+
 Un outil Python permettant de **modéliser, simuler, tester et visualiser des automates finis** :
 
 - Automates finis déterministes (**AFD**)
